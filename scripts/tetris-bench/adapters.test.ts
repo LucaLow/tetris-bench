@@ -89,5 +89,6 @@ test('Jev transport rounding preserves argmax without accepting arbitrary scores
   const rounded = normaliseChoiceProbabilities({p0:.55,p1:.3,p2:.14});
   assert.ok(rounded);assert.ok(Math.abs(Object.values(rounded.probabilities).reduce((s,p)=>s+p,0)-1)<1e-12);
   assert.ok(rounded.probabilities.p0>rounded.probabilities.p1);assert.ok(Math.abs(rounded.mass-.99)<1e-12);
-  for(const invalid of [{p0:0},{p0:NaN},{p0:1.1},{p0:.6,p1:.6},{p0:.7,p1:.1}]) assert.equal(normaliseChoiceProbabilities(invalid),null);
+  const invalidCases: Record<string, number>[] = [{p0:0},{p0:NaN},{p0:1.1},{p0:.6,p1:.6},{p0:.7,p1:.1}];
+  for(const invalid of invalidCases) assert.equal(normaliseChoiceProbabilities(invalid),null);
 });
