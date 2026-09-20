@@ -42,7 +42,7 @@ test('official publication rejects single-brain and any-mode provider failure, b
 
 test('merge requires matching runtime, platform, source, concurrency and frozen protocol', () => {
   const current = { ruleset: RULESET, official: true, seeds: ['seed-01'], maxPieces: 500, maxTicks: 10000, provenance: { hardware: { cpu: 'test-cpu', cores: 8 }, runtime: 'v24', platform: 'darwin/arm64', sourceHashes: { a: 'sha-a', b: 'sha-b' }, concurrency: 1 } };
-  const previous = current as TournamentIndex;
+  const previous: TournamentIndex = { ...structuredClone(current), generatedAt: '2026-09-20T00:00:00Z', rating: 'Bradley–Terry IQ / seed bootstrap', leaderboard: [], runs: [], matches: [] };
   assert.doesNotThrow(() => assertMergeCompatible(previous, { ...current, provenance: { ...current.provenance, sourceHashes: { b: 'sha-b', a: 'sha-a' } } }));
   for (const change of [{ hardware: { cpu: 'other-cpu', cores: 8 } }, { hardware: { cpu: 'test-cpu', cores: 16 } }, { runtime: 'v25' }, { platform: 'linux/x64' }, { concurrency: 2 }, { sourceHashes: { a: 'different', b: 'sha-b' } }]) {
     assert.throws(() => assertMergeCompatible(previous, { ...current, provenance: { ...current.provenance, ...change } }), /source or timing/);
