@@ -1,5 +1,5 @@
 /** Frozen deterministic game rules. Behavioural changes require a ruleset bump. */
-export const RULESET = 'tetris-bench@1' as const;
+export const RULESET = 'tetris-bench@2' as const;
 export const WIDTH = 10, HEIGHT = 20, MAX_PIECES = 500, MAX_TICKS = 10_000;
 export type Piece = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
 export type Rotation = 0 | 1 | 2 | 3;
@@ -155,7 +155,7 @@ export function advanceGravity(state: GameState): GameState {
 }
 /** Stable transport hash covers state that can change a decision. */
 export function stateHash(s: GameState): string {
-  const value = JSON.stringify([s.ruleset,s.board,s.active,s.hold,s.next,s.level,s.score,s.tick,s.holdUsed,s.over,s.rng,s.bag]);
+  const value = JSON.stringify([s.ruleset,s.board,s.active,s.hold,s.next,s.level,s.score,s.tick,s.holdUsed,s.over,s.lines,s.pieces,s.combo,s.backToBack]);
   return seedNumber(value).toString(16).padStart(8,'0');
 }
 export function gravityIntervalMs(s: Pick<GameState, 'level'>): number { return Math.max(16, Math.round(1000 * Math.pow(0.8, s.level - 1))); }

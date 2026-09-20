@@ -82,7 +82,7 @@ test('frozen seed-01 canonical replay hashes',()=>{
   for(let i=0;i<12;i++){
     const choices=legalPlacements(s); s=applyPlacement(s,choices[(i*7)%choices.length]); hashes.push(stateHash(s));
   }
-  assert.deepEqual(hashes,['f4e7ba0a','1e956998','524ee9d1','9a7251b4','01d6e90d','166663e4','26876243','8e809c73','b8900579','59f8c29a','d5283122','4cf1111f']);
+  assert.deepEqual(hashes,['d907650e','fa460e69','d22a33b2','18f5e0c0','9669e22e','f7cefcd3','f831dca0','c458a021','84830d65','4e631d8c','88d528be','41e2d66a']);
   assert.equal(s.score,340); assert.equal(s.pieces,12);
 });
 test('40 deterministic mixed-action games preserve board and stream invariants',()=>{
@@ -105,7 +105,7 @@ test('40 deterministic mixed-action games preserve board and stream invariants',
   }
 });
 test('frozen rules source fingerprint: deliberate version review required to update',()=>{
-  assert.equal(RULESET,'tetris-bench@1');
+  assert.equal(RULESET,'tetris-bench@2');
   const source=readFileSync(new URL('../../lib/tetris-bench/engine.ts',import.meta.url));
-  assert.equal(createHash('sha256').update(source).digest('hex'),'be7365116192d672cf973480237a6219b8a3827b259909c49d2573063e820aa0');
+  assert.equal(createHash('sha256').update(source).digest('hex'),'e159b58557d75aa26aca5f2257d88c73a21c558188f8bae1efe36bdaa66aea0d');
 });

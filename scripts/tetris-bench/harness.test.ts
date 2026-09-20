@@ -39,3 +39,28 @@ test('misses are not reported as successful model latency',async()=>{
   const game=await runGame(brain(()=>new Promise(()=>{})),'test','Blitz',{maxTicks:2,blitzCapMs:2});
   assert.equal(game.metrics.p50Ms,null);assert.equal(game.metrics.p95Ms,null);assert.equal(game.metrics.calls,1);
 });
+test('public candidate outcomes deduplicate physical O placements and disclose hold/scoring state', () => {
+  const state = createGame('test'); state.active = { type:'O',x:3,y:-1,rotation:0 }; state.holdUsed = true;
+  state.combo=2; state.backToBack=true;
+  const input = inputFor(state,'IQ');
+  assert.equal(input.candidates.length,9); assert.equal(input.legal.length,9);
+  assert.equal(input.canHold,false); assert.equal(input.combo,2); assert.equal(input.backToBack,true);
+  assert.equal(validateAnswer({stateHash:input.stateHash,choice:[{...input.legal[0],p:1}],noul:{hold:1}},input.stateHash,input.legal,input.canHold).status,'invalid');
+  assert.deepEqual(input,inputFor(state,'IQ'));
+});
+test('input, ordering and hashes do not disclose the hidden bag or RNG',()=>{
+  const a=createGame('test'),b=structuredClone(a); b.rng=42;b.bag=['I','T'];b.seed='secret';
+  assert.deepEqual(inputFor(a,'IQ'),inputFor(b,'IQ'));
+});
+test('three unusable IQ answers end an adapter failure instead of inflating game calls',async()=>{
+  const game=await runGame(brain(()=>null),'test','IQ');
+  assert.equal(game.outcome,'adapter-failure');assert.equal(game.metrics.calls,3);assert.equal(game.pieces,0);
+});
+test('sync calls over the deadline remain measured but cannot act',async()=>{
+  const game=await runGame(brain(input=>{const start=performance.now();while(performance.now()-start<8){};return {stateHash:input.stateHash,choice:[{...input.legal[0],p:1}]};}),'test','Blitz',{maxTicks:1,blitzCapMs:2});
+  assert.equal(game.metrics.completedCalls,1);assert.equal(game.metrics.timedOutCalls,1);assert.ok((game.metrics.p50Ms??0)>=8);assert.equal(game.pieces,0);
+});
+test('adapter gets only public input and cancellation context',async()=>{
+  const game=await runGame(brain((input,context)=>{assert.deepEqual(Object.keys(context),['signal']);return {stateHash:input.stateHash,choice:[{...input.legal[0],p:1}]};}),'test','IQ',{maxPieces:1});
+  assert.equal(game.pieces,1);assert.ok((game.metrics.preparationP50Ms??0)>0);
+});
