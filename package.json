@@ -1,0 +1,13 @@
+{
+  "name": "tetris-bench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test scripts/tetris-bench/*.test.ts",
+    "bench:run": "node scripts/tetris-bench/run.ts"
+  }
+}
