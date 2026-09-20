@@ -1,6 +1,6 @@
 {
   "name": "tetris-bench",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "node --test scripts/tetris-bench/*.test.ts",
-    "bench:run": "node scripts/tetris-bench/run.ts"
+    "bench:run": "node scripts/tetris-bench/run.ts",
+    "bench:probe": "node scripts/tetris-bench/probe.ts"
   }
 }

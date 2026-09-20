@@ -1,20 +1,66 @@
-/** Export only the auditable arena harness, never the private website or env. */
-import { cp, mkdir, writeFile, access } from 'node:fs/promises';
+/**
+ * Export the auditable harness to a standalone directory: engine, contract,
+ * features, harness, recording, adapters, model registry, rating, runner,
+ * probe and their tests, plus the rules, changelog and README. Never the
+ * website code, the site-only modules, the published results or any env.
+ *
+ *   node scripts/tetris-bench/export-public.mjs <directory> [--force]
+ *
+ * The directory must not exist unless --force is given, in which case the
+ * exported files are written over it (other files there are left alone).
+ */
+import { cp, mkdir, writeFile, access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const destination = process.argv[2];
-if (!destination) throw new Error('Usage: node scripts/tetris-bench/export-public.mjs <new-directory>');
+const HARNESS_VERSION = '3.0.0';
+const LIB_FILES = ['engine.ts', 'contract.ts', 'features.ts', 'harness.ts', 'recording.ts', 'adapters.ts', 'models.ts', 'rating.ts'];
+const SCRIPT_FILES = [
+  'run.ts', 'runner-integrity.ts', 'probe.ts', 'archive-old-recordings.mjs', 'export-public.mjs',
+  'engine.test.ts', 'harness.test.ts', 'recording.test.ts', 'adapters.test.ts', 'rating.test.ts', 'runner.test.ts',
+];
+const DOC_FILES = ['docs/tetris-bench-rules.md', 'docs/tetris-bench-changelog.md'];
+const README_SOURCE = 'docs/tetris-bench-readme.md';
+
+const argv = process.argv.slice(2);
+const force = argv.includes('--force');
+const destination = argv.find(argument => !argument.startsWith('--'));
+if (!destination) throw new Error('Usage: node scripts/tetris-bench/export-public.mjs <new-directory> [--force]');
 const root = path.resolve(destination);
-try { await access(root); throw new Error('Destination must not exist'); }
-catch (error) { if (error.code !== 'ENOENT') throw error; }
-await mkdir(root, { recursive: true });
-for (const entry of ['lib/tetris-bench', 'scripts/tetris-bench', 'docs/tetris-bench-rules.md']) {
-  await mkdir(path.dirname(path.join(root, entry)), { recursive: true });
-  await cp(entry, path.join(root, entry), { recursive: true, filter: (source) => !source.endsWith('/data.ts') });
+
+async function exists(file) {
+  try {
+    await access(file);
+    return true;
+  } catch {
+    return false;
+  }
 }
+
+if (!force && (await exists(root))) throw new Error('Destination must not exist (pass --force to write over it)');
+
+async function copyInto(source, target) {
+  await mkdir(path.dirname(target), { recursive: true });
+  await cp(source, target);
+}
+
+for (const file of LIB_FILES) await copyInto(path.join('lib/tetris-bench', file), path.join(root, 'lib/tetris-bench', file));
+for (const file of SCRIPT_FILES) await copyInto(path.join('scripts/tetris-bench', file), path.join(root, 'scripts/tetris-bench', file));
+for (const file of DOC_FILES) await copyInto(file, path.join(root, file));
+
+const readme = await readFile(README_SOURCE, 'utf8');
+await writeFile(path.join(root, 'README.md'), readme.endsWith('\n') ? readme : readme + '\n');
+
 await writeFile(path.join(root, 'package.json'), JSON.stringify({
-  name: 'tetris-bench', version: '2.0.0', private: true, type: 'module', engines: { node: '>=24' },
-  scripts: { test: 'node --test scripts/tetris-bench/*.test.ts', 'bench:run': 'node scripts/tetris-bench/run.ts' },
+  name: 'tetris-bench',
+  version: HARNESS_VERSION,
+  private: true,
+  type: 'module',
+  engines: { node: '>=24' },
+  scripts: {
+    test: 'node --test scripts/tetris-bench/*.test.ts',
+    'bench:run': 'node scripts/tetris-bench/run.ts',
+    'bench:probe': 'node scripts/tetris-bench/probe.ts',
+  },
 }, null, 2) + '\n');
 await writeFile(path.join(root, '.gitignore'), 'node_modules/\n.env*\npublic/tetris-bench/\n');
 await mkdir(path.join(root, '.github/workflows'), { recursive: true });
@@ -31,30 +77,5 @@ jobs:
         with:
           node-version: '24'
       - run: npm test
-`);
-await writeFile(path.join(root, 'README.md'), `# Tetris Bench
-
-Decision models play Tetris through one typed contract. IQ pauses gravity while a brain answers. Blitz gives it at most 100 ms. IQ determines CR. Blitz is reported separately as an end-to-end systems stress test.
-
-The website lives at [lowndes.dev/tetris-bench](https://www.lowndes.dev/tetris-bench). This repository contains the auditable engine, adapters, harness, rating code, runner and tests.
-
-## Run
-
-Node.js 24 or newer is required. The harness has no package dependencies.
-
-\`\`\`sh
-npm test
-npm run bench:run -- --help
-\`\`\`
-
-Read [the frozen rules and adapter contract](docs/tetris-bench-rules.md) before running a tournament or submitting an adapter. Run the full thirty-seed serial suite for official CR. Quick and custom-limit runs are separate from official results.
-
-Provider credentials belong in environment variables. Never commit keys or raw provider error bodies. Local brains need no credentials. Jev uses OpenRouter's System One endpoint; the LLM classifier uses structured JSON output.
-
-## Enter
-
-Open a pull request adding an adapter and its tests. It must implement the same typed contract as every other brain. Include model identity, timeout and cancellation behaviour, and cost reporting. Ratings are generated by server or CLI jobs, never trusted from a browser.
-
-The behavioural ruleset is \`tetris-bench@2\`. Behavioural changes require a new ruleset version and a fresh rating field.
 `);
 console.log(root);
